@@ -41,14 +41,18 @@ export function rowTitle(row: TaskRowData) {
   return [reg, model, colour, peg && `Peg ${peg}`].filter(Boolean).join(" · ") || "Vehicle task";
 }
 
-export function makeChildTasks(parent: Task, rows: TaskRowData[], author: string): Task[] {
+export function makeChildTasks(parent: Task, rows: TaskRowData[], author: string, userId: string | null): Task[] {
   const now = new Date().toISOString();
 
   return rows.map((row) => ({
     id: crypto.randomUUID(),
     parentId: parent.id,
+    site: parent.site,
     title: rowTitle(row),
     status: "new",
+    createdByUserId: userId,
+    takenByUserId: null,
+    completedByUserId: null,
     createdBy: author,
     takenBy: null,
     completedBy: null,

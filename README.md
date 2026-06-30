@@ -12,9 +12,12 @@ Team task board for DD25.
 - Tasks have threaded comments.
 - Excel rows can be pasted into a batch so each row becomes an individual child task.
 - Browser notifications can be enabled per device.
+- Live deployments use the shared DD25 Supabase auth and `profiles` table.
+- Users only see tasks for their dealership/site.
+- Manager cleanup is based on the central profile role.
 
 ## Deploy
 
 Use this as a separate Vercel project for `tasks.dd25.co.uk`.
 
-Run `supabase-task-board.sql` in Supabase when moving from local-first storage to shared live storage.
+Run `supabase-task-board.sql` in Supabase. It creates/updates the task tables and applies dealership/site-based row-level security.

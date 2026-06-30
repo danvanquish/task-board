@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Bell,
   CheckCircle2,
@@ -29,9 +29,16 @@ import {
   insertRemoteNotification,
   insertRemoteTasks,
   isSupabaseEnabled,
+  fetchCurrentProfile,
+  getCurrentSession,
+  onAuthChange,
+  signIn,
+  signOut,
   subscribeToRemoteChanges,
   updateRemoteTask,
 } from "./supabase";
+import type { Session } from "@supabase/supabase-js";
+import { SuiteProfile } from "./types";
 
 const statusLabels: Record<TaskStatus, string> = {
   new: "New",
@@ -44,6 +51,9 @@ const statusOrder: TaskStatus[] = ["new", "in_progress", "waiting", "done"];
 
 export function App() {
   const [profile, setProfile] = useState(loadProfile);
+  const [session, setSession] = useState<Session | null>(null);
+  const [suiteProfile, setSuiteProfile] = useState<SuiteProfile | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(isSupabaseEnabled);
   const [tasks, setTasks] = useState(loadTasks);
   const [comments, setComments] = useState(loadComments);
   const [notifications, setNotifications] = useState(loadNotifications);
@@ -55,15 +65,69 @@ export function App() {
   const parentTasks = useMemo(() => tasks.filter((task) => !task.parentId), [tasks]);
   const childTasks = useMemo(() => tasks.filter((task) => task.parentId), [tasks]);
   const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const actorName = suiteProfile?.advisorName || profile.name || "Someone";
+  const actorUserId = suiteProfile?.userId ?? null;
+  const activeSite = suiteProfile?.site ?? "Local";
+  const isManager = suiteProfile
+    ? suiteProfile.role.toLowerCase() === "manager" || suiteProfile.role.toLowerCase() === "super_admin"
+    : profile.isManager;
 
   useEffect(() => {
     if (!isSupabaseEnabled) return;
 
     let cancelled = false;
 
+    async function loadAuth() {
+      try {
+        const currentSession = await getCurrentSession();
+        if (cancelled) return;
+
+        setSession(currentSession);
+        if (currentSession) {
+          setSuiteProfile(await fetchCurrentProfile());
+        } else {
+          setSuiteProfile(null);
+        }
+      } catch (error) {
+        console.error(error);
+        setToast("Unable to load your DD25 login");
+      } finally {
+        if (!cancelled) setIsCheckingAuth(false);
+      }
+    }
+
+    void loadAuth();
+    const unsubscribe = onAuthChange((nextSession) => {
+      setSession(nextSession);
+      if (!nextSession) {
+        setSuiteProfile(null);
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      void fetchCurrentProfile()
+        .then(setSuiteProfile)
+        .catch((error) => {
+          console.error(error);
+          setToast("Unable to load your DD25 profile");
+        })
+        .finally(() => setIsCheckingAuth(false));
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseEnabled || !suiteProfile?.site) return;
+
+    let cancelled = false;
+
     async function loadRemote() {
       try {
-        const remote = await fetchRemoteState();
+        const remote = await fetchRemoteState(suiteProfile.site);
         if (!remote || cancelled) return;
 
         setTasks(remote.tasks);
@@ -85,7 +149,7 @@ export function App() {
       cancelled = true;
       unsubscribe();
     };
-  }, []);
+  }, [suiteProfile?.site]);
 
   function updateProfile(nextProfile: typeof profile) {
     setProfile(nextProfile);
@@ -106,6 +170,7 @@ export function App() {
     const nextNotification: TaskNotification = {
       id: crypto.randomUUID(),
       taskId,
+      site: activeSite,
       message,
       createdAt: new Date().toISOString(),
       read: false,
@@ -141,7 +206,7 @@ export function App() {
   }
 
   function setTaskStatus(task: Task, status: TaskStatus) {
-    const actor = profile.name || "Someone";
+    const actor = actorName;
     const now = new Date().toISOString();
     const changedTasks: Task[] = [];
     const nextTasks = tasks.map((item) => {
@@ -150,6 +215,8 @@ export function App() {
       const changedTask = {
         ...item,
         status,
+        takenByUserId: status === "in_progress" ? actorUserId : item.takenByUserId,
+        completedByUserId: status === "done" ? actorUserId : status !== "done" ? null : item.completedByUserId,
         takenBy: status === "in_progress" ? actor : item.takenBy,
         completedBy: status === "done" ? actor : status !== "done" ? null : item.completedBy,
         completedAt: status === "done" ? now : null,
@@ -162,8 +229,9 @@ export function App() {
 
     const afterParentUpdate = updateParentCompletion(nextTasks);
     persistTasks(afterParentUpdate);
+    const affectedParentId = task.parentId ?? task.id;
     afterParentUpdate
-      .filter((item) => changedTasks.some((changedTask) => changedTask.id === item.id) || !item.parentId)
+      .filter((item) => changedTasks.some((changedTask) => changedTask.id === item.id) || item.id === affectedParentId)
       .forEach((item) => {
         void updateRemoteTask(item).catch((error) => {
           console.error(error);
@@ -198,6 +266,11 @@ export function App() {
   }
 
   function removeCompleted() {
+    if (!isManager) {
+      setToast("Only managers can remove completed tasks");
+      return;
+    }
+
     const completedParentIds = new Set(
       tasks.filter((task) => !task.parentId && task.status === "done").map((task) => task.id)
     );
@@ -224,7 +297,9 @@ export function App() {
       {
         id: crypto.randomUUID(),
         taskId,
-        author: profile.name || "Someone",
+        site: activeSite,
+        userId: actorUserId,
+        author: actorName,
         body: trimmed,
         createdAt: new Date().toISOString(),
       },
@@ -235,7 +310,7 @@ export function App() {
       console.error(error);
       setToast("Unable to save comment");
     });
-    addNotification(taskId, `${profile.name || "Someone"} commented on a task`);
+    addNotification(taskId, `${actorName} commented on a task`);
   }
 
   function saveNote(taskId: string, note: string) {
@@ -258,9 +333,13 @@ export function App() {
     const task: Task = {
       id: crypto.randomUUID(),
       parentId: null,
+      site: activeSite,
       title: trimmed,
       status: "new",
-      createdBy: profile.name || "Someone",
+      createdByUserId: actorUserId,
+      takenByUserId: null,
+      completedByUserId: null,
+      createdBy: actorName,
       takenBy: null,
       completedBy: null,
       createdAt: now,
@@ -287,9 +366,13 @@ export function App() {
     const parent: Task = {
       id: crypto.randomUUID(),
       parentId: null,
+      site: activeSite,
       title: title.trim(),
       status: "new",
-      createdBy: profile.name || "Someone",
+      createdByUserId: actorUserId,
+      takenByUserId: null,
+      completedByUserId: null,
+      createdBy: actorName,
       takenBy: null,
       completedBy: null,
       createdAt: now,
@@ -298,7 +381,7 @@ export function App() {
       note,
       rowData: null,
     };
-    const children = makeChildTasks(parent, parsed.rows, profile.name || "Someone");
+    const children = makeChildTasks(parent, parsed.rows, actorName, actorUserId);
 
     persistTasks([parent, ...children, ...tasks]);
     void insertRemoteTasks([parent, ...children]).catch((error) => {
@@ -309,6 +392,33 @@ export function App() {
     setIsAdding(false);
   }
 
+  if (isSupabaseEnabled && isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
+        <div className="auth-card">Checking your DD25 login...</div>
+      </div>
+    );
+  }
+
+  if (isSupabaseEnabled && !session) {
+    return <LoginScreen onSignIn={signIn} />;
+  }
+
+  if (isSupabaseEnabled && !suiteProfile) {
+    return (
+      <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
+        <div className="auth-card">
+          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <h1>Profile needed</h1>
+          <p>Your DD25 account needs a profile with a dealership/site before Team Tasks can open.</p>
+          <button className="button wide" onClick={() => void signOut()}>
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a]">
       <header className="sticky top-0 z-10 border-b border-[#d9e5e0] bg-white/90 px-4 py-3 backdrop-blur">
@@ -317,25 +427,14 @@ export function App() {
             <img src="/dd25-logo.png" alt="DD25" className="h-12 w-28 rounded-md bg-[#0b3937] object-contain" />
             <div>
               <h1 className="text-xl font-semibold">Team Tasks</h1>
-              <p className="text-sm text-[#59716d]">Shared jobs, vehicle batches, notes, and task updates.</p>
+              <p className="text-sm text-[#59716d]">
+                {activeSite} · Shared jobs, vehicle batches, notes, and task updates.
+              </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={profile.name}
-              onChange={(event) => updateProfile({ ...profile, name: event.target.value })}
-              placeholder="Your name"
-              className="h-10 w-40 rounded-md border border-[#cddfda] bg-white px-3 text-sm outline-none focus:border-[#0f6464]"
-            />
-            <label className="flex h-10 items-center gap-2 rounded-md border border-[#cddfda] bg-white px-3 text-sm">
-              <input
-                type="checkbox"
-                checked={profile.isManager}
-                onChange={(event) => updateProfile({ ...profile, isManager: event.target.checked })}
-              />
-              Manager
-            </label>
+            <div className="user-chip">{actorName}{isManager ? " · Manager" : ""}</div>
             <button className="button secondary" onClick={enableNotifications}>
               <Bell className="h-4 w-4" />
               {profile.notificationsEnabled ? "On" : "Notify"}
@@ -345,6 +444,11 @@ export function App() {
               <Plus className="h-4 w-4" />
               Add Task
             </button>
+            {isSupabaseEnabled && (
+              <button className="button secondary" onClick={() => void signOut()}>
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -371,7 +475,7 @@ export function App() {
         </section>
       </main>
 
-      {profile.isManager && tasks.some((task) => task.status === "done") && (
+      {isManager && tasks.some((task) => task.status === "done") && (
         <button className="cleanup-button" onClick={removeCompleted}>
           <Trash2 className="h-4 w-4" />
           Remove completed tasks
@@ -405,6 +509,50 @@ export function App() {
           {toast}
         </button>
       )}
+    </div>
+  );
+}
+
+function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string) => Promise<void> | void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      await onSignIn(email, password);
+    } catch (signInError) {
+      console.error(signInError);
+      setError(signInError instanceof Error ? signInError.message : "Unable to sign in");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
+      <form className="auth-card" onSubmit={submit}>
+        <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+        <h1>Team Tasks</h1>
+        <p>Sign in with your DD25 account to see your dealership task board.</p>
+
+        <label>Email</label>
+        <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+
+        <label>Password</label>
+        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
+
+        {error && <p className="auth-error">{error}</p>}
+
+        <button className="button wide" disabled={loading}>
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
     </div>
   );
 }

@@ -64,8 +64,12 @@ function seedTasks(): Task[] {
     {
       id: crypto.randomUUID(),
       parentId: null,
+      site: "Local",
       title: "Photograph fresh part exchanges",
       status: "new",
+      createdByUserId: null,
+      takenByUserId: null,
+      completedByUserId: null,
       createdBy: "DD25",
       takenBy: null,
       completedBy: null,
