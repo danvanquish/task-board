@@ -55,6 +55,7 @@ type ProfileRow = {
   advisor_name: string | null;
   site: string | null;
   role: string | null;
+  can_access_tasks: boolean | null;
 };
 
 export async function getCurrentSession() {
@@ -76,6 +77,20 @@ export async function signIn(email: string, password: string) {
   if (error) throw error;
 }
 
+export async function requestPasswordReset(email: string) {
+  if (!supabase) return;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(password: string) {
+  if (!supabase) return;
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
 export async function signOut() {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
@@ -90,7 +105,7 @@ export async function fetchCurrentProfile(): Promise<SuiteProfile | null> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("user_id, advisor_name, site, role")
+    .select("user_id, advisor_name, site, role, can_access_tasks")
     .eq("user_id", userData.user.id)
     .maybeSingle();
 
@@ -103,6 +118,7 @@ export async function fetchCurrentProfile(): Promise<SuiteProfile | null> {
     advisorName: profile.advisor_name ?? userData.user.email ?? "Unknown user",
     site: profile.site,
     role: profile.role ?? "advisor",
+    canAccessTasks: profile.can_access_tasks !== false,
   };
 }
 

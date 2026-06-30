@@ -34,9 +34,11 @@ import {
   fetchCurrentProfile,
   getCurrentSession,
   onAuthChange,
+  requestPasswordReset,
   signIn,
   signOut,
   subscribeToRemoteChanges,
+  updatePassword,
   updateRemoteTask,
 } from "./supabase";
 import type { Session } from "@supabase/supabase-js";
@@ -402,6 +404,10 @@ export function App() {
     );
   }
 
+  if (isSupabaseEnabled && window.location.pathname === "/reset-password") {
+    return <ResetPasswordScreen />;
+  }
+
   if (isSupabaseEnabled && !session) {
     return <LoginScreen onSignIn={signIn} />;
   }
@@ -413,6 +419,21 @@ export function App() {
           <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
           <h1>Profile needed</h1>
           <p>Your DD25 account needs a profile with a dealership/site before Team Tasks can open.</p>
+          <button className="button wide" onClick={() => void signOut()}>
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSupabaseEnabled && suiteProfile && !suiteProfile.canAccessTasks) {
+    return (
+      <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
+        <div className="auth-card">
+          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <h1>No Team Tasks Access</h1>
+          <p>Your DD25 account is not currently enabled for Team Tasks.</p>
           <button className="button wide" onClick={() => void signOut()}>
             Sign out
           </button>
@@ -521,6 +542,7 @@ function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string)
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -534,6 +556,27 @@ function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string)
       setError(signInError instanceof Error ? signInError.message : "Unable to sign in");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resetPassword() {
+    const resetEmail = email.trim();
+    if (!resetEmail) {
+      setError("Enter your email address first, then choose Forgot password.");
+      return;
+    }
+
+    setResetting(true);
+    setError("");
+
+    try {
+      await requestPasswordReset(resetEmail);
+      setError("If that email has access, a password reset link has been sent.");
+    } catch (resetError) {
+      console.error(resetError);
+      setError(resetError instanceof Error ? resetError.message : "Unable to send reset link");
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -574,7 +617,58 @@ function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string)
           {loading ? "Signing in..." : "Sign in"}
         </button>
 
+        <button type="button" className="link-button" disabled={resetting} onClick={resetPassword}>
+          {resetting ? "Sending reset link..." : "Forgot password?"}
+        </button>
+
         <p className="auth-footer">© Daniel Dawson / DD25. Confidential.</p>
+      </form>
+    </div>
+  );
+}
+
+function ResetPasswordScreen() {
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function savePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (password.length < 8) {
+      setMessage("Enter at least 8 characters.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      await updatePassword(password);
+      setMessage("Password updated. You can now sign in.");
+      await signOut();
+    } catch (error) {
+      console.error(error);
+      setMessage(error instanceof Error ? error.message : "Unable to update password");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
+      <form className="auth-card" onSubmit={savePassword}>
+        <div className="auth-brand">
+          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <h1>Set New Password</h1>
+          <p>Choose a new DD25 password.</p>
+        </div>
+
+        <label>New password</label>
+        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
+        {message && <p className="auth-error">{message}</p>}
+        <button className="button wide" disabled={saving}>
+          {saving ? "Saving..." : "Save password"}
+        </button>
       </form>
     </div>
   );

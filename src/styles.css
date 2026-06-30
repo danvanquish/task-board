@@ -478,6 +478,16 @@ textarea {
   font-size: 0.75rem;
 }
 
+.link-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #59716d;
+  padding: 10px 0 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .user-chip {
   display: inline-flex;
   align-items: center;

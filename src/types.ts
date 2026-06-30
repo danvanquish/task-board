@@ -48,4 +48,5 @@ export type SuiteProfile = {
   advisorName: string;
   site: string;
   role: string;
+  canAccessTasks: boolean;
 };
