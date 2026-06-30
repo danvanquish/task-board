@@ -3,6 +3,8 @@ import {
   Bell,
   CheckCircle2,
   ClipboardList,
+  Eye,
+  EyeOff,
   MessageSquareText,
   Plus,
   StickyNote,
@@ -516,6 +518,7 @@ export function App() {
 function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string) => Promise<void> | void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -537,21 +540,41 @@ function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string)
   return (
     <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
       <form className="auth-card" onSubmit={submit}>
-        <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
-        <h1>Team Tasks</h1>
-        <p>Sign in with your DD25 account to see your dealership task board.</p>
+        <div className="auth-brand">
+          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <h1>Team Tasks</h1>
+          <p>Sign in with your DD25 account</p>
+        </div>
 
         <label>Email</label>
-        <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+        <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required />
 
         <label>Password</label>
-        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
+        <div className="password-field">
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
 
         {error && <p className="auth-error">{error}</p>}
 
         <button className="button wide" disabled={loading}>
           {loading ? "Signing in..." : "Sign in"}
         </button>
+
+        <p className="auth-footer">© Daniel Dawson / DD25. Confidential.</p>
       </form>
     </div>
   );

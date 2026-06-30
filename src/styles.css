@@ -395,35 +395,51 @@ textarea {
 }
 
 .auth-shell {
+  position: relative;
   display: grid;
   place-items: center;
+  overflow: hidden;
   padding: 20px;
+  background:
+    radial-gradient(circle at 22% 22%, rgba(15, 100, 100, 0.16), transparent 28%),
+    radial-gradient(circle at 78% 72%, rgba(139, 188, 177, 0.2), transparent 30%),
+    linear-gradient(135deg, #eaf1ee 0%, #f8fbf9 48%, #e8f4f1 100%);
 }
 
 .auth-card {
+  position: relative;
   width: min(420px, 100%);
   border: 1px solid #d9e5e0;
-  border-radius: 10px;
-  background: white;
-  padding: 24px;
-  box-shadow: 0 20px 60px rgba(16, 42, 42, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 32px;
+  box-shadow: 0 24px 70px rgba(16, 42, 42, 0.18);
+  backdrop-filter: blur(16px);
 }
 
 .auth-card h1 {
-  margin: 14px 0 4px;
+  margin: 16px 0 6px;
+  font-size: 1.55rem;
 }
 
 .auth-card p {
   color: #59716d;
 }
 
+.auth-brand {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
 .auth-logo {
   display: block;
-  width: 150px;
-  height: 64px;
+  width: 170px;
+  height: 74px;
+  margin: 0 auto;
   border-radius: 6px;
   background: #0b3937;
   object-fit: contain;
+  box-shadow: 0 12px 30px rgba(16, 42, 42, 0.18);
 }
 
 .auth-error {
@@ -431,6 +447,35 @@ textarea {
   background: #fee2e2;
   color: #8f1d1d !important;
   padding: 10px 12px;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 46px;
+}
+
+.password-field button {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: calc(100% - 2px);
+  border: 0;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  color: #59716d;
+}
+
+.auth-footer {
+  margin: 22px 0 0;
+  text-align: center;
+  font-size: 0.75rem;
 }
 
 .user-chip {
