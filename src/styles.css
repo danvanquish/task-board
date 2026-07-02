@@ -879,7 +879,7 @@ textarea {
   }
 
   .task-board-grid {
-    grid-template-columns: repeat(3, 128px);
+    grid-template-columns: minmax(360px, 1fr) 112px 112px;
     justify-content: start;
   }
 
@@ -898,25 +898,33 @@ textarea {
     grid-template-columns: 112px 112px minmax(360px, 1fr);
   }
 
-  .task-column:not(:hover):not(:focus-within) {
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within),
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within),
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) {
     padding: 14px 10px;
   }
 
-  .task-column:not(:hover):not(:focus-within) .column-header {
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within) .column-header,
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header,
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header {
     display: grid;
     justify-items: center;
     gap: 8px;
     padding: 0;
   }
 
-  .task-column:not(:hover):not(:focus-within) .column-header h2 {
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within) .column-header h2,
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header h2,
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header h2 {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .task-column:not(:hover):not(:focus-within) .grid {
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within) .grid,
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within) .grid,
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) .grid {
     display: none;
   }
 
