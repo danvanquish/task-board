@@ -554,7 +554,7 @@ export function App() {
     return (
       <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
         <div className="auth-card">
-          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <img src="/icon-512.png" alt="DD25 Team Tasks" className="auth-logo app-logo" />
           <h1>Profile needed</h1>
           <p>Your DD25 account needs a profile with a dealership/site before Team Tasks can open.</p>
           <button className="button wide" onClick={() => void signOut()}>
@@ -569,7 +569,7 @@ export function App() {
     return (
       <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
         <div className="auth-card">
-          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <img src="/icon-512.png" alt="DD25 Team Tasks" className="auth-logo app-logo" />
           <h1>No Team Tasks Access</h1>
           <p>Your DD25 account is not currently enabled for Team Tasks.</p>
           <button className="button wide" onClick={() => void signOut()}>
@@ -585,7 +585,7 @@ export function App() {
       <header className="sticky top-0 z-10 border-b border-[#d9e5e0] bg-white/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <img src="/dd25-logo.png" alt="DD25" className="h-12 w-28 rounded-md bg-[#0b3937] object-contain" />
+            <img src="/icon-192.png" alt="DD25 Team Tasks" className="app-header-logo" />
             <div>
               <h1 className="text-xl font-semibold">{viewLabels[taskView]}</h1>
               <p className="text-sm text-[#59716d]">
@@ -735,7 +735,7 @@ function LoginScreen({ onSignIn }: { onSignIn: (email: string, password: string)
     <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
       <form className="auth-card" onSubmit={submit}>
         <div className="auth-brand">
-          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <img src="/icon-512.png" alt="DD25 Team Tasks" className="auth-logo app-logo" />
           <h1>Team Tasks</h1>
           <p>Sign in with your DD25 account</p>
         </div>
@@ -809,7 +809,7 @@ function ResetPasswordScreen() {
     <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a] auth-shell">
       <form className="auth-card" onSubmit={savePassword}>
         <div className="auth-brand">
-          <img src="/dd25-logo.png" alt="DD25" className="auth-logo" />
+          <img src="/icon-512.png" alt="DD25 Team Tasks" className="auth-logo app-logo" />
           <h1>Set New Password</h1>
           <p>Choose a new DD25 password.</p>
         </div>
@@ -859,7 +859,7 @@ function TaskColumn({
   onOpen: (id: string) => void;
 }) {
   return (
-    <div className="task-column min-h-[520px] rounded-lg border border-[#d9e5e0] bg-[#eef5f2] p-3">
+    <div className="task-column min-h-[520px] rounded-lg border border-[#d9e5e0] p-3">
       <div className="column-header mb-3 flex items-center justify-between">
         <h2 className="font-semibold">{statusLabels[status]}</h2>
         <span className="column-count rounded-md bg-white px-2 py-1 text-xs font-semibold">{tasks.length}</span>
