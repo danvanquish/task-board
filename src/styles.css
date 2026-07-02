@@ -535,6 +535,10 @@ textarea {
 }
 
 @media (max-width: 720px) {
+  .metrics-strip {
+    display: none;
+  }
+
   .detail-grid,
   .batch-table button,
   .comment-form {
