@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Session } from "@supabase/supabase-js";
-import { SuiteProfile, Task, TaskComment, TaskNotification, TaskStatus } from "./types";
+import { SuiteProfile, Task, TaskComment, TaskNotification, TaskScope, TaskStatus } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -19,6 +19,7 @@ type TaskRow = {
   site: string;
   title: string;
   status: TaskStatus | "waiting";
+  task_scope: TaskScope | null;
   urgent: boolean | null;
   created_by_user_id: string | null;
   taken_by_user_id: string | null;
@@ -204,6 +205,7 @@ function fromTaskRow(row: TaskRow): Task {
     site: row.site,
     title: row.title,
     status,
+    taskScope: row.task_scope ?? "team",
     urgent: Boolean(row.urgent),
     createdByUserId: row.created_by_user_id,
     takenByUserId: row.taken_by_user_id,
@@ -226,6 +228,7 @@ function toTaskRow(task: Task) {
     site: task.site,
     title: task.title,
     status: task.status,
+    task_scope: task.taskScope ?? "team",
     urgent: task.urgent,
     created_by_user_id: task.createdByUserId,
     taken_by_user_id: task.takenByUserId,

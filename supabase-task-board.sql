@@ -7,6 +7,7 @@ create table if not exists public.tasks (
   site text not null,
   title text not null,
   status text not null default 'new' check (status in ('new', 'in_progress', 'done')),
+  task_scope text not null default 'team' check (task_scope in ('team', 'personal')),
   urgent boolean not null default false,
   created_by_user_id uuid references auth.users(id),
   taken_by_user_id uuid references auth.users(id),
@@ -23,6 +24,7 @@ create table if not exists public.tasks (
 
 alter table public.tasks
   add column if not exists site text,
+  add column if not exists task_scope text not null default 'team',
   add column if not exists urgent boolean not null default false,
   add column if not exists created_by_user_id uuid references auth.users(id),
   add column if not exists taken_by_user_id uuid references auth.users(id),
@@ -37,6 +39,12 @@ alter table public.tasks
 
 alter table public.tasks
   add constraint tasks_status_check check (status in ('new', 'in_progress', 'done'));
+
+alter table public.tasks
+  drop constraint if exists tasks_task_scope_check;
+
+alter table public.tasks
+  add constraint tasks_task_scope_check check (task_scope in ('team', 'personal'));
 
 update public.tasks
 set site = 'Redditch'
@@ -119,6 +127,13 @@ using (
     where profiles.user_id = auth.uid()
       and profiles.site = tasks.site
       and coalesce(profiles.access_disabled, false) = false
+      and (
+        tasks.task_scope = 'team'
+        or (
+          tasks.task_scope = 'personal'
+          and tasks.created_by_user_id = auth.uid()
+        )
+      )
   )
 );
 
@@ -134,6 +149,7 @@ with check (
     where profiles.user_id = auth.uid()
       and profiles.site = tasks.site
       and coalesce(profiles.access_disabled, false) = false
+      and tasks.task_scope in ('team', 'personal')
   )
 );
 
@@ -148,6 +164,13 @@ using (
     where profiles.user_id = auth.uid()
       and profiles.site = tasks.site
       and coalesce(profiles.access_disabled, false) = false
+      and (
+        tasks.task_scope = 'team'
+        or (
+          tasks.task_scope = 'personal'
+          and tasks.created_by_user_id = auth.uid()
+        )
+      )
   )
 )
 with check (
@@ -157,6 +180,13 @@ with check (
     where profiles.user_id = auth.uid()
       and profiles.site = tasks.site
       and coalesce(profiles.access_disabled, false) = false
+      and (
+        tasks.task_scope = 'team'
+        or (
+          tasks.task_scope = 'personal'
+          and tasks.created_by_user_id = auth.uid()
+        )
+      )
   )
 );
 
@@ -170,8 +200,17 @@ using (
     from public.profiles
     where profiles.user_id = auth.uid()
       and profiles.site = tasks.site
-      and lower(profiles.role) in ('manager', 'super_admin')
       and coalesce(profiles.access_disabled, false) = false
+      and (
+        (
+          tasks.task_scope = 'team'
+          and lower(profiles.role) in ('manager', 'super_admin')
+        )
+        or (
+          tasks.task_scope = 'personal'
+          and tasks.created_by_user_id = auth.uid()
+        )
+      )
   )
 );
 
@@ -187,10 +226,18 @@ to authenticated
 using (
   exists (
     select 1
-    from public.profiles
-    where profiles.user_id = auth.uid()
-      and profiles.site = task_comments.site
+    from public.tasks task
+    join public.profiles profiles on profiles.site = task.site
+    where task.id = task_comments.task_id
+      and profiles.user_id = auth.uid()
       and coalesce(profiles.access_disabled, false) = false
+      and (
+        task.task_scope = 'team'
+        or (
+          task.task_scope = 'personal'
+          and task.created_by_user_id = auth.uid()
+        )
+      )
   )
 );
 
@@ -202,10 +249,18 @@ with check (
   user_id = auth.uid()
   and exists (
     select 1
-    from public.profiles
-    where profiles.user_id = auth.uid()
-      and profiles.site = task_comments.site
+    from public.tasks task
+    join public.profiles profiles on profiles.site = task.site
+    where task.id = task_comments.task_id
+      and profiles.user_id = auth.uid()
       and coalesce(profiles.access_disabled, false) = false
+      and (
+        task.task_scope = 'team'
+        or (
+          task.task_scope = 'personal'
+          and task.created_by_user_id = auth.uid()
+        )
+      )
   )
 );
 

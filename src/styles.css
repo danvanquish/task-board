@@ -59,6 +59,7 @@ body {
 .mt-2 { margin-top: 0.5rem; }
 .min-h-\[520px\] { min-height: 520px; }
 .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.xl\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
@@ -135,14 +136,70 @@ textarea {
   font-size: 0.75rem;
 }
 
-.metric-card {
+.board-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.left-pane {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  gap: 12px;
+}
+
+.view-switch,
+.metric-list {
+  border: 1px solid #d9e5e0;
+  border-radius: 8px;
+  background: white;
+  padding: 8px;
+  box-shadow: 0 1px 2px rgba(16, 42, 42, 0.04);
+}
+
+.view-switch {
+  display: grid;
+  gap: 6px;
+}
+
+.view-switch button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #36534f;
+  padding: 0 10px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.view-switch button.active {
+  background: #0f6464;
+  color: white;
+}
+
+.metric-list {
   display: grid;
   gap: 4px;
 }
 
-.metric-value {
-  font-size: 2rem;
-  line-height: 1;
+.metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #59716d;
+  font-size: 0.86rem;
+}
+
+.metric-row strong {
+  color: #102a2a;
+  font-size: 1.05rem;
 }
 
 .task-column {
@@ -586,21 +643,40 @@ textarea {
 
   .detail-grid,
   .batch-table button,
-  .comment-form {
+  .comment-form,
+  .board-shell {
     grid-template-columns: 1fr;
+  }
+
+  .left-pane {
+    position: static;
+  }
+
+  .view-switch {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .view-switch button {
+    text-align: center;
   }
 
   .md\:grid-cols-4,
   .md\:grid-cols-3,
-  .xl\:grid-cols-4 {
+  .xl\:grid-cols-4,
+  .xl\:grid-cols-3 {
     grid-template-columns: 1fr;
   }
 }
 
 @media (min-width: 721px) and (max-width: 1199px) {
+  .board-shell {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+
   .md\:grid-cols-4,
   .md\:grid-cols-3,
-  .xl\:grid-cols-4 {
+  .xl\:grid-cols-4,
+  .xl\:grid-cols-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -612,6 +688,10 @@ textarea {
   }
 
   .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .xl\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

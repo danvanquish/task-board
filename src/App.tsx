@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Bell,
-  CheckCircle2,
   ClipboardList,
   Eye,
   EyeOff,
@@ -10,7 +9,6 @@ import {
   Plus,
   StickyNote,
   Trash2,
-  UserRoundCheck,
   X,
 } from "lucide-react";
 import { makeChildTasks, parsePastedTable } from "./excel";
@@ -26,7 +24,7 @@ import {
   saveReadNotificationIds,
   saveTasks,
 } from "./storage";
-import { Task, TaskComment, TaskNotification, TaskStatus } from "./types";
+import { Task, TaskComment, TaskNotification, TaskScope, TaskStatus } from "./types";
 import {
   deleteRemoteCompleted,
   fetchRemoteState,
@@ -54,6 +52,10 @@ const statusLabels: Record<TaskStatus, string> = {
 };
 
 const statusOrder: TaskStatus[] = ["new", "in_progress", "done"];
+const viewLabels: Record<TaskScope, string> = {
+  personal: "My Tasks",
+  team: "Team Tasks",
+};
 
 function taskCardClass(task: Task) {
   if (task.status === "done") return "task-card task-done";
@@ -81,17 +83,32 @@ export function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState("");
+  const [taskView, setTaskView] = useState<TaskScope>("team");
 
-  const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
-  const parentTasks = useMemo(() => tasks.filter((task) => !task.parentId), [tasks]);
-  const childTasks = useMemo(() => tasks.filter((task) => task.parentId), [tasks]);
-  const unreadCount = notifications.filter((notification) => !notification.read && !readNotificationIds.includes(notification.id)).length;
   const actorName = suiteProfile?.advisorName || profile.name || "Someone";
   const actorUserId = suiteProfile?.userId ?? null;
   const activeSite = suiteProfile?.site ?? "Local";
   const isManager = suiteProfile
     ? suiteProfile.role.toLowerCase() === "manager" || suiteProfile.role.toLowerCase() === "super_admin"
     : profile.isManager;
+  const visibleTasks = useMemo(
+    () =>
+      tasks.filter((task) => {
+        const scope = task.taskScope ?? "team";
+        if (scope !== taskView) return false;
+        if (scope === "personal") return !actorUserId || task.createdByUserId === actorUserId;
+        return true;
+      }),
+    [actorUserId, taskView, tasks]
+  );
+  const selectedTask = visibleTasks.find((task) => task.id === selectedTaskId) ?? null;
+  const parentTasks = useMemo(() => visibleTasks.filter((task) => !task.parentId), [visibleTasks]);
+  const childTasks = useMemo(() => visibleTasks.filter((task) => task.parentId), [visibleTasks]);
+  const unreadCount = notifications.filter((notification) => !notification.read && !readNotificationIds.includes(notification.id)).length;
+
+  useEffect(() => {
+    setSelectedTaskId(null);
+  }, [taskView]);
 
   useEffect(() => {
     if (!isSupabaseEnabled) return;
@@ -348,9 +365,13 @@ export function App() {
       });
 
     if (status === "done") {
-      addNotification(task.id, `${actor} completed: ${task.title}`, { pushTeam: true });
+      if ((task.taskScope ?? "team") === "team") {
+        addNotification(task.id, `${actor} completed: ${task.title}`, { pushTeam: true });
+      }
     } else if (status === "in_progress") {
-      addNotification(task.id, `${actor} is doing: ${task.title}`);
+      if ((task.taskScope ?? "team") === "team") {
+        addNotification(task.id, `${actor} is doing: ${task.title}`);
+      }
     }
   }
 
@@ -374,13 +395,13 @@ export function App() {
   }
 
   function removeCompleted() {
-    if (!isManager) {
+    if (taskView === "team" && !isManager) {
       setToast("Only managers can remove completed tasks");
       return;
     }
 
     const completedParentIds = new Set(
-      tasks.filter((task) => !task.parentId && task.status === "done").map((task) => task.id)
+      parentTasks.filter((task) => task.status === "done").map((task) => task.id)
     );
     const nextTasks = tasks.filter((task) => {
       if (!task.parentId) return task.status !== "done";
@@ -418,7 +439,10 @@ export function App() {
       console.error(error);
       setToast("Unable to save comment");
     });
-    addNotification(taskId, `${actorName} commented on a task`);
+    const task = tasks.find((item) => item.id === taskId);
+    if ((task?.taskScope ?? "team") === "team") {
+      addNotification(taskId, `${actorName} commented on a task`);
+    }
   }
 
   function saveNote(taskId: string, note: string) {
@@ -444,6 +468,7 @@ export function App() {
       site: activeSite,
       title: trimmed,
       status: "new",
+      taskScope: taskView,
       urgent,
       createdByUserId: actorUserId,
       takenByUserId: null,
@@ -463,7 +488,9 @@ export function App() {
       console.error(error);
       setToast("Unable to save new task");
     });
-    addNotification(task.id, `${task.createdBy} added: ${task.title}`, { pushTeam: true });
+    if (task.taskScope === "team") {
+      addNotification(task.id, `${task.createdBy} added: ${task.title}`, { pushTeam: true });
+    }
     setIsAdding(false);
   }
 
@@ -478,6 +505,7 @@ export function App() {
       site: activeSite,
       title: title.trim(),
       status: "new",
+      taskScope: taskView,
       urgent,
       createdByUserId: actorUserId,
       takenByUserId: null,
@@ -498,7 +526,9 @@ export function App() {
       console.error(error);
       setToast("Unable to save task batch");
     });
-    addNotification(parent.id, `${parent.createdBy} added ${children.length} vehicle tasks`, { pushTeam: true });
+    if (parent.taskScope === "team") {
+      addNotification(parent.id, `${parent.createdBy} added ${children.length} rows`, { pushTeam: true });
+    }
     setIsAdding(false);
   }
 
@@ -555,9 +585,11 @@ export function App() {
           <div className="flex items-center gap-3">
             <img src="/dd25-logo.png" alt="DD25" className="h-12 w-28 rounded-md bg-[#0b3937] object-contain" />
             <div>
-              <h1 className="text-xl font-semibold">Team Tasks</h1>
+              <h1 className="text-xl font-semibold">{viewLabels[taskView]}</h1>
               <p className="text-sm text-[#59716d]">
-                {activeSite} · Shared jobs, vehicle batches, notes, and task updates.
+                {taskView === "team"
+                  ? `${activeSite} · Shared jobs, pasted rows, notes, and task updates.`
+                  : "Private reminders, notes, and personal jobs."}
               </p>
             </div>
           </div>
@@ -583,27 +615,38 @@ export function App() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <section className="metrics-strip mb-5 grid gap-3 md:grid-cols-3">
-          <Metric label="Open tasks" value={tasks.filter((task) => task.status !== "done").length} />
-          <Metric label="Completed" value={tasks.filter((task) => task.status === "done").length} />
-          <Metric label="Notes" value={tasks.filter((task) => task.note.trim()).length} />
-        </section>
+        <section className="board-shell">
+          <aside className="left-pane">
+            <div className="view-switch" aria-label="Task view">
+              {(["personal", "team"] as TaskScope[]).map((view) => (
+                <button
+                  key={view}
+                  className={taskView === view ? "active" : ""}
+                  onClick={() => setTaskView(view)}
+                >
+                  {viewLabels[view]}
+                </button>
+              ))}
+            </div>
+            <MetricsList tasks={visibleTasks} />
+          </aside>
 
-        <section className="grid gap-4 xl:grid-cols-4">
-          {statusOrder.map((status) => (
-            <TaskColumn
-              key={status}
-              status={status}
-              tasks={parentTasks.filter((task) => task.status === status)}
-              childTasks={childTasks}
-              comments={comments}
-              onOpen={setSelectedTaskId}
-            />
-          ))}
+          <section className="task-board-grid grid gap-4 xl:grid-cols-3">
+            {statusOrder.map((status) => (
+              <TaskColumn
+                key={status}
+                status={status}
+                tasks={parentTasks.filter((task) => task.status === status)}
+                childTasks={childTasks}
+                comments={comments}
+                onOpen={setSelectedTaskId}
+              />
+            ))}
+          </section>
         </section>
       </main>
 
-      {isManager && tasks.some((task) => task.status === "done") && (
+      {(taskView === "personal" || isManager) && parentTasks.some((task) => task.status === "done") && (
         <button className="cleanup-button" onClick={removeCompleted}>
           <Trash2 className="h-4 w-4" />
           Remove completed tasks
@@ -629,6 +672,7 @@ export function App() {
           onClose={() => setIsAdding(false)}
           onSingle={addSingleTask}
           onBatch={addBatchTask}
+          view={taskView}
         />
       )}
 
@@ -779,11 +823,22 @@ function ResetPasswordScreen() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function MetricsList({ tasks }: { tasks: Task[] }) {
+  const parentTasks = tasks.filter((task) => !task.parentId);
+  const metrics = [
+    { label: "Open", value: parentTasks.filter((task) => task.status !== "done").length },
+    { label: "Done", value: parentTasks.filter((task) => task.status === "done").length },
+    { label: "Notes", value: parentTasks.filter((task) => task.note.trim()).length },
+  ];
+
   return (
-    <div className="metric-card rounded-lg border border-[#d9e5e0] bg-white p-4 shadow-sm">
-      <p className="text-sm text-[#59716d]">{label}</p>
-      <p className="metric-value mt-1 text-2xl font-semibold">{value}</p>
+    <div className="metric-list" aria-label="Task summary">
+      {metrics.map((metric) => (
+        <div key={metric.label} className="metric-row">
+          <span>{metric.label}</span>
+          <strong>{metric.value}</strong>
+        </div>
+      ))}
     </div>
   );
 }
@@ -992,10 +1047,12 @@ function AddTaskModal({
   onClose,
   onSingle,
   onBatch,
+  view,
 }: {
   onClose: () => void;
   onSingle: (title: string, note: string, urgent: boolean) => void;
   onBatch: (title: string, paste: string, note: string, urgent: boolean) => void;
+  view: TaskScope;
 }) {
   const [mode, setMode] = useState<"single" | "batch">("single");
   const [title, setTitle] = useState("");
@@ -1010,7 +1067,7 @@ function AddTaskModal({
         <div className="modal-header">
           <div>
             <p className="text-sm text-[#59716d]">Create work</p>
-            <h2>Add a task</h2>
+            <h2>Add to {viewLabels[view]}</h2>
           </div>
           <button className="icon-button" onClick={onClose}>
             <X className="h-5 w-5" />

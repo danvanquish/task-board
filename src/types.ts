@@ -1,4 +1,5 @@
 export type TaskStatus = "new" | "in_progress" | "done";
+export type TaskScope = "team" | "personal";
 
 export type TaskComment = {
   id: string;
@@ -21,6 +22,7 @@ export type Task = {
   site: string;
   title: string;
   status: TaskStatus;
+  taskScope: TaskScope;
   urgent: boolean;
   createdByUserId: string | null;
   takenByUserId: string | null;

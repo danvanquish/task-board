@@ -76,6 +76,8 @@ function seedTasks(): Task[] {
       site: "Local",
       title: "Photograph fresh part exchanges",
       status: "new",
+      taskScope: "team",
+      urgent: false,
       createdByUserId: null,
       takenByUserId: null,
       completedByUserId: null,
