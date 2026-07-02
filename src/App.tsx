@@ -56,6 +56,13 @@ const statusLabels: Record<TaskStatus, string> = {
 
 const statusOrder: TaskStatus[] = ["new", "in_progress", "waiting", "done"];
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = `${base64String}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
 export function App() {
   const [profile, setProfile] = useState(loadProfile);
   const [session, setSession] = useState<Session | null>(null);
@@ -178,7 +185,32 @@ export function App() {
     saveComments(nextComments);
   }
 
-  function addNotification(taskId: string, message: string) {
+  async function sendTeamPush(taskId: string, message: string) {
+    if (!isSupabaseEnabled || !suiteProfile?.site) return;
+
+    const session = await getCurrentSession();
+    if (!session?.access_token) return;
+
+    const response = await fetch("/api/task-push", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        taskId,
+        site: suiteProfile.site,
+        message,
+      }),
+    });
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || "Unable to send team notification");
+    }
+  }
+
+  function addNotification(taskId: string, message: string, options: { pushTeam?: boolean } = {}) {
     const nextNotification: TaskNotification = {
       id: crypto.randomUUID(),
       taskId,
@@ -196,13 +228,16 @@ export function App() {
       setToast("Unable to save notification");
     });
 
-    if (profile.notificationsEnabled && "Notification" in window && Notification.permission === "granted") {
-      new Notification("DD25 Tasks", { body: message });
+    if (options.pushTeam) {
+      void sendTeamPush(taskId, message).catch((error) => {
+        console.error(error);
+        setToast("Unable to send team push notification");
+      });
     }
   }
 
   async function enableNotifications() {
-    if (!("Notification" in window)) {
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setToast("This browser does not support notifications");
       return;
     }
@@ -210,6 +245,45 @@ export function App() {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       setToast("Notifications were not allowed");
+      return;
+    }
+
+    const session = await getCurrentSession();
+    if (!session?.access_token) {
+      setToast("Please sign in again");
+      return;
+    }
+
+    const keyResponse = await fetch("/api/push-subscriptions", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const keyResult = await keyResponse.json();
+
+    if (!keyResponse.ok || !keyResult.publicKey) {
+      setToast(keyResult.error || "Unable to load notification settings");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    const subscription =
+      (await registration.pushManager.getSubscription()) ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(keyResult.publicKey),
+      }));
+
+    const saveResponse = await fetch("/api/push-subscriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ subscription }),
+    });
+    const saveResult = await saveResponse.json();
+
+    if (!saveResponse.ok) {
+      setToast(saveResult.error || "Unable to save notification settings");
       return;
     }
 
@@ -268,7 +342,7 @@ export function App() {
       });
 
     if (status === "done") {
-      addNotification(task.id, `${actor} completed: ${task.title}`);
+      addNotification(task.id, `${actor} completed: ${task.title}`, { pushTeam: true });
     } else if (status === "in_progress") {
       addNotification(task.id, `${actor} is doing: ${task.title}`);
     }
@@ -382,7 +456,7 @@ export function App() {
       console.error(error);
       setToast("Unable to save new task");
     });
-    addNotification(task.id, `${task.createdBy} added: ${task.title}`);
+    addNotification(task.id, `${task.createdBy} added: ${task.title}`, { pushTeam: true });
     setIsAdding(false);
   }
 
@@ -416,7 +490,7 @@ export function App() {
       console.error(error);
       setToast("Unable to save task batch");
     });
-    addNotification(parent.id, `${parent.createdBy} added ${children.length} vehicle tasks`);
+    addNotification(parent.id, `${parent.createdBy} added ${children.length} vehicle tasks`, { pushTeam: true });
     setIsAdding(false);
   }
 
