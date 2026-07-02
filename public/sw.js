@@ -3,8 +3,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "DD25 Team Tasks";
   const options = {
     body: data.body || "You have a task update.",
-    icon: "/dd25-logo.png",
-    badge: "/dd25-logo.png",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     data: {
       url: data.url || "/",
     },
