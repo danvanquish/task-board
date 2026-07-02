@@ -151,7 +151,8 @@ textarea {
 }
 
 .view-switch,
-.metric-list {
+.metric-list,
+.team-chat {
   border: 1px solid #d9e5e0;
   border-radius: 8px;
   background: white;
@@ -223,6 +224,87 @@ textarea {
 .metric-row strong {
   color: #102a2a;
   font-size: 1.05rem;
+}
+
+.team-chat {
+  display: grid;
+  gap: 10px;
+}
+
+.team-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team-chat-header h2 {
+  margin: 0;
+  color: #102a2a;
+  font-size: 0.98rem;
+}
+
+.team-chat-header span {
+  min-width: 24px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  padding: 2px 7px;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.team-chat-messages {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.team-chat-message {
+  border-radius: 8px;
+  background: #fdf8f8;
+  padding: 9px;
+}
+
+.team-chat-message div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #59716d;
+  font-size: 0.72rem;
+}
+
+.team-chat-message strong {
+  color: #7f1d1d;
+}
+
+.team-chat-message p,
+.team-chat-empty {
+  margin: 6px 0 0;
+  color: #102a2a;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.team-chat-empty {
+  color: #59716d;
+}
+
+.team-chat-form {
+  display: grid;
+  gap: 8px;
+}
+
+.team-chat-form .button {
+  min-height: 36px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .task-column {

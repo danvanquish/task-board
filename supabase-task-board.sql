@@ -88,6 +88,15 @@ create table if not exists public.task_notifications (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.team_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  site text not null,
+  user_id uuid references auth.users(id),
+  author text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
 alter table public.task_notifications
   add column if not exists site text;
 
@@ -107,6 +116,9 @@ alter table public.task_notifications
 alter table public.tasks enable row level security;
 alter table public.task_comments enable row level security;
 alter table public.task_notifications enable row level security;
+alter table public.team_chat_messages enable row level security;
+
+grant select, insert on public.team_chat_messages to authenticated;
 
 drop policy if exists "tasks_read_all" on public.tasks;
 drop policy if exists "tasks_insert_all" on public.tasks;
@@ -293,6 +305,38 @@ with check (
     from public.profiles
     where profiles.user_id = auth.uid()
       and profiles.site = task_notifications.site
+      and coalesce(profiles.access_disabled, false) = false
+  )
+);
+
+drop policy if exists "team_chat_read_site" on public.team_chat_messages;
+drop policy if exists "team_chat_insert_site" on public.team_chat_messages;
+
+create policy "team_chat_read_site"
+on public.team_chat_messages
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.user_id = auth.uid()
+      and profiles.site = team_chat_messages.site
+      and coalesce(profiles.access_disabled, false) = false
+  )
+);
+
+create policy "team_chat_insert_site"
+on public.team_chat_messages
+for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from public.profiles
+    where profiles.user_id = auth.uid()
+      and profiles.site = team_chat_messages.site
       and coalesce(profiles.access_disabled, false) = false
   )
 );

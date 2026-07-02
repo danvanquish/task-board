@@ -17,19 +17,22 @@ import {
   loadNotifications,
   loadProfile,
   loadReadNotificationIds,
+  loadTeamChatMessages,
   loadTasks,
   saveComments,
   saveNotifications,
   saveProfile,
   saveReadNotificationIds,
+  saveTeamChatMessages,
   saveTasks,
 } from "./storage";
-import { Task, TaskComment, TaskNotification, TaskScope, TaskStatus } from "./types";
+import { Task, TaskComment, TaskNotification, TaskScope, TaskStatus, TeamChatMessage } from "./types";
 import {
   deleteRemoteCompleted,
   fetchRemoteState,
   insertRemoteComment,
   insertRemoteNotification,
+  insertRemoteTeamChatMessage,
   insertRemoteTasks,
   isSupabaseEnabled,
   fetchCurrentProfile,
@@ -81,6 +84,7 @@ export function App() {
   const [tasks, setTasks] = useState(loadTasks);
   const [comments, setComments] = useState(loadComments);
   const [notifications, setNotifications] = useState(loadNotifications);
+  const [teamChatMessages, setTeamChatMessages] = useState(loadTeamChatMessages);
   const [readNotificationIds, setReadNotificationIds] = useState(loadReadNotificationIds);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -190,6 +194,8 @@ export function App() {
         saveTasks(remote.tasks);
         setComments(remote.comments);
         saveComments(remote.comments);
+        setTeamChatMessages(remote.chatMessages);
+        saveTeamChatMessages(remote.chatMessages);
         const nextNotifications = remote.notifications.map((notification) => ({
           ...notification,
           read: readNotificationIds.includes(notification.id),
@@ -224,6 +230,11 @@ export function App() {
   function persistComments(nextComments: TaskComment[]) {
     setComments(nextComments);
     saveComments(nextComments);
+  }
+
+  function persistTeamChatMessages(nextMessages: TeamChatMessage[]) {
+    setTeamChatMessages(nextMessages);
+    saveTeamChatMessages(nextMessages);
   }
 
   async function sendTeamPush(taskId: string, message: string) {
@@ -463,6 +474,27 @@ export function App() {
     }
   }
 
+  function addTeamChatMessage(body: string) {
+    const trimmed = body.trim();
+    if (!trimmed) return;
+
+    const nextMessage: TeamChatMessage = {
+      id: crypto.randomUUID(),
+      site: activeSite,
+      userId: actorUserId,
+      author: actorName,
+      body: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+    const nextMessages = [...teamChatMessages, nextMessage].slice(-80);
+
+    persistTeamChatMessages(nextMessages);
+    void insertRemoteTeamChatMessage(nextMessage).catch((error) => {
+      console.error(error);
+      setToast("Unable to save team chat");
+    });
+  }
+
   function saveNote(taskId: string, note: string) {
     const changedTask = tasks.find((task) => task.id === taskId);
     if (!changedTask) return;
@@ -648,6 +680,9 @@ export function App() {
               ))}
             </div>
             <MetricsList tasks={visibleTasks} />
+            {taskView === "team" && (
+              <TeamChat messages={teamChatMessages} onSend={addTeamChatMessage} />
+            )}
           </aside>
 
           <section className="task-board-grid grid gap-4 xl:grid-cols-3">
@@ -859,6 +894,47 @@ function MetricsList({ tasks }: { tasks: Task[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function TeamChat({ messages, onSend }: { messages: TeamChatMessage[]; onSend: (body: string) => void }) {
+  const [body, setBody] = useState("");
+  const recentMessages = messages.slice(-12);
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSend(body);
+    setBody("");
+  }
+
+  return (
+    <section className="team-chat" aria-label="Team chat">
+      <div className="team-chat-header">
+        <h2>Team chat</h2>
+        <span>{messages.length}</span>
+      </div>
+
+      <div className="team-chat-messages">
+        {recentMessages.length === 0 ? (
+          <p className="team-chat-empty">No messages yet.</p>
+        ) : (
+          recentMessages.map((message) => (
+            <article key={message.id} className="team-chat-message">
+              <div>
+                <strong>{message.author}</strong>
+                <time>{new Date(message.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</time>
+              </div>
+              <p>{message.body}</p>
+            </article>
+          ))
+        )}
+      </div>
+
+      <form className="team-chat-form" onSubmit={submit}>
+        <input value={body} onChange={(event) => setBody(event.target.value)} placeholder="Message the team" />
+        <button className="button" disabled={!body.trim()}>Send</button>
+      </form>
+    </section>
   );
 }
 

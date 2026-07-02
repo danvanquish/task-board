@@ -1,9 +1,10 @@
-import { Task, TaskComment, TaskNotification } from "./types";
+import { Task, TaskComment, TaskNotification, TeamChatMessage } from "./types";
 
 const tasksKey = "dd25-task-board.tasks";
 const commentsKey = "dd25-task-board.comments";
 const notificationsKey = "dd25-task-board.notifications";
 const readNotificationIdsKey = "dd25-task-board.read-notification-ids";
+const teamChatKey = "dd25-task-board.team-chat";
 const profileKey = "dd25-task-board.profile";
 
 export type Profile = {
@@ -55,6 +56,14 @@ export function loadReadNotificationIds() {
 
 export function saveReadNotificationIds(ids: string[]) {
   localStorage.setItem(readNotificationIdsKey, JSON.stringify(ids));
+}
+
+export function loadTeamChatMessages() {
+  return readJson<TeamChatMessage[]>(teamChatKey, []);
+}
+
+export function saveTeamChatMessages(messages: TeamChatMessage[]) {
+  localStorage.setItem(teamChatKey, JSON.stringify(messages));
 }
 
 function readJson<T>(key: string, fallback: T): T {

@@ -46,6 +46,15 @@ export type TaskNotification = {
   read: boolean;
 };
 
+export type TeamChatMessage = {
+  id: string;
+  site: string;
+  userId: string | null;
+  author: string;
+  body: string;
+  createdAt: string;
+};
+
 export type SuiteProfile = {
   userId: string;
   advisorName: string;

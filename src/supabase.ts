@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { Session } from "@supabase/supabase-js";
-import { SuiteProfile, Task, TaskComment, TaskNotification, TaskScope, TaskStatus } from "./types";
+import { SuiteProfile, Task, TaskComment, TaskNotification, TaskScope, TaskStatus, TeamChatMessage } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -49,6 +49,15 @@ type NotificationRow = {
   task_id: string;
   site: string;
   message: string;
+  created_at: string;
+};
+
+type TeamChatRow = {
+  id: string;
+  site: string;
+  user_id: string | null;
+  author: string;
+  body: string;
   created_at: string;
 };
 
@@ -127,11 +136,17 @@ export async function fetchCurrentProfile(): Promise<SuiteProfile | null> {
 export async function fetchRemoteState(site: string) {
   if (!supabase) return null;
 
-  const [{ data: tasks, error: tasksError }, { data: comments, error: commentsError }, { data: notifications, error: notificationsError }] =
+  const [
+    { data: tasks, error: tasksError },
+    { data: comments, error: commentsError },
+    { data: notifications, error: notificationsError },
+    { data: chatMessages, error: chatError },
+  ] =
     await Promise.all([
       supabase.from("tasks").select("*").eq("site", site).order("created_at", { ascending: false }),
       supabase.from("task_comments").select("*").eq("site", site).order("created_at", { ascending: true }),
       supabase.from("task_notifications").select("*").eq("site", site).order("created_at", { ascending: false }).limit(30),
+      supabase.from("team_chat_messages").select("*").eq("site", site).order("created_at", { ascending: true }).limit(80),
     ]);
 
   if (tasksError || commentsError || notificationsError) {
@@ -142,6 +157,7 @@ export async function fetchRemoteState(site: string) {
     tasks: (tasks ?? []).map(fromTaskRow),
     comments: (comments ?? []).map(fromCommentRow),
     notifications: (notifications ?? []).map(fromNotificationRow),
+    chatMessages: chatError ? [] : (chatMessages ?? []).map(fromTeamChatRow),
   };
 }
 
@@ -181,6 +197,19 @@ export async function insertRemoteNotification(notification: TaskNotification) {
   if (error) throw error;
 }
 
+export async function insertRemoteTeamChatMessage(message: TeamChatMessage) {
+  if (!supabase) return;
+  const { error } = await supabase.from("team_chat_messages").insert({
+    id: message.id,
+    site: message.site,
+    user_id: message.userId,
+    author: message.author,
+    body: message.body,
+    created_at: message.createdAt,
+  });
+  if (error) throw error;
+}
+
 export function subscribeToRemoteChanges(onChange: () => void) {
   if (!supabase) return () => undefined;
 
@@ -189,6 +218,7 @@ export function subscribeToRemoteChanges(onChange: () => void) {
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "task_comments" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "task_notifications" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "team_chat_messages" }, onChange)
     .subscribe();
 
   return () => {
@@ -276,5 +306,16 @@ function fromNotificationRow(row: NotificationRow): TaskNotification {
     message: row.message,
     createdAt: row.created_at,
     read: false,
+  };
+}
+
+function fromTeamChatRow(row: TeamChatRow): TeamChatMessage {
+  return {
+    id: row.id,
+    site: row.site,
+    userId: row.user_id,
+    author: row.author,
+    body: row.body,
+    createdAt: row.created_at,
   };
 }
