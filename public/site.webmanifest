@@ -1,6 +1,6 @@
 {
-  "name": "DD25 Team Tasks",
-  "short_name": "Tasks",
+  "name": "Team Tasks",
+  "short_name": "Team Tasks",
   "description": "DD25 dealership task board",
   "start_url": "/",
   "scope": "/",
