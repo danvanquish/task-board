@@ -3,6 +3,7 @@ import { Task, TaskComment, TaskNotification } from "./types";
 const tasksKey = "dd25-task-board.tasks";
 const commentsKey = "dd25-task-board.comments";
 const notificationsKey = "dd25-task-board.notifications";
+const readNotificationIdsKey = "dd25-task-board.read-notification-ids";
 const profileKey = "dd25-task-board.profile";
 
 export type Profile = {
@@ -46,6 +47,14 @@ export function loadNotifications() {
 
 export function saveNotifications(notifications: TaskNotification[]) {
   localStorage.setItem(notificationsKey, JSON.stringify(notifications));
+}
+
+export function loadReadNotificationIds() {
+  return readJson<string[]>(readNotificationIdsKey, []);
+}
+
+export function saveReadNotificationIds(ids: string[]) {
+  localStorage.setItem(readNotificationIdsKey, JSON.stringify(ids));
 }
 
 function readJson<T>(key: string, fallback: T): T {

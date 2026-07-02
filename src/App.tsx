@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Eye,
   EyeOff,
+  LogOut,
   MessageSquareText,
   Plus,
   StickyNote,
@@ -17,10 +18,12 @@ import {
   loadComments,
   loadNotifications,
   loadProfile,
+  loadReadNotificationIds,
   loadTasks,
   saveComments,
   saveNotifications,
   saveProfile,
+  saveReadNotificationIds,
   saveTasks,
 } from "./storage";
 import { Task, TaskComment, TaskNotification, TaskStatus } from "./types";
@@ -61,6 +64,7 @@ export function App() {
   const [tasks, setTasks] = useState(loadTasks);
   const [comments, setComments] = useState(loadComments);
   const [notifications, setNotifications] = useState(loadNotifications);
+  const [readNotificationIds, setReadNotificationIds] = useState(loadReadNotificationIds);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState("");
@@ -68,7 +72,7 @@ export function App() {
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
   const parentTasks = useMemo(() => tasks.filter((task) => !task.parentId), [tasks]);
   const childTasks = useMemo(() => tasks.filter((task) => task.parentId), [tasks]);
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const unreadCount = notifications.filter((notification) => !notification.read && !readNotificationIds.includes(notification.id)).length;
   const actorName = suiteProfile?.advisorName || profile.name || "Someone";
   const actorUserId = suiteProfile?.userId ?? null;
   const activeSite = suiteProfile?.site ?? "Local";
@@ -138,8 +142,12 @@ export function App() {
         saveTasks(remote.tasks);
         setComments(remote.comments);
         saveComments(remote.comments);
-        setNotifications(remote.notifications);
-        saveNotifications(remote.notifications);
+        const nextNotifications = remote.notifications.map((notification) => ({
+          ...notification,
+          read: readNotificationIds.includes(notification.id),
+        }));
+        setNotifications(nextNotifications);
+        saveNotifications(nextNotifications);
       } catch (error) {
         console.error(error);
         setToast("Unable to load shared tasks");
@@ -153,7 +161,7 @@ export function App() {
       cancelled = true;
       unsubscribe();
     };
-  }, [suiteProfile?.site]);
+  }, [readNotificationIds, suiteProfile?.site]);
 
   function updateProfile(nextProfile: typeof profile) {
     setProfile(nextProfile);
@@ -207,6 +215,22 @@ export function App() {
 
     updateProfile({ ...profile, notificationsEnabled: true });
     setToast("Notifications enabled on this device");
+  }
+
+  function handleNotificationsClick() {
+    if (!profile.notificationsEnabled) {
+      void enableNotifications();
+      return;
+    }
+
+    const nextReadIds = Array.from(new Set([...readNotificationIds, ...notifications.map((notification) => notification.id)])).slice(-120);
+    const nextNotifications = notifications.map((notification) => ({ ...notification, read: true }));
+
+    setReadNotificationIds(nextReadIds);
+    saveReadNotificationIds(nextReadIds);
+    setNotifications(nextNotifications);
+    saveNotifications(nextNotifications);
+    setToast("Notifications marked as read");
   }
 
   function setTaskStatus(task: Task, status: TaskStatus) {
@@ -458,9 +482,9 @@ export function App() {
 
           <div className="flex flex-wrap items-center gap-2">
             <div className="user-chip">{actorName}{isManager ? " · Manager" : ""}</div>
-            <button className="button secondary" onClick={enableNotifications}>
+            <button className="button secondary" onClick={handleNotificationsClick}>
               <Bell className="h-4 w-4" />
-              {profile.notificationsEnabled ? "On" : "Notify"}
+              {profile.notificationsEnabled ? (unreadCount > 0 ? "Mark read" : "On") : "Notify"}
               {unreadCount > 0 && <span className="pill">{unreadCount}</span>}
             </button>
             <button className="button" onClick={() => setIsAdding(true)}>
@@ -468,8 +492,8 @@ export function App() {
               Add Task
             </button>
             {isSupabaseEnabled && (
-              <button className="button secondary" onClick={() => void signOut()}>
-                Sign out
+              <button className="icon-button sign-out-button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out">
+                <LogOut className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -479,7 +503,7 @@ export function App() {
       <main className="mx-auto max-w-7xl px-4 py-6">
         <section className="mb-5 grid gap-3 md:grid-cols-4">
           <Metric label="Open tasks" value={tasks.filter((task) => task.status !== "done").length} />
-          <Metric label="Vehicle rows" value={childTasks.length} />
+          <Metric label="Vehicle tasks" value={childTasks.length} />
           <Metric label="Completed" value={tasks.filter((task) => task.status === "done").length} />
           <Metric label="Notes" value={tasks.filter((task) => task.note.trim()).length} />
         </section>
@@ -676,9 +700,9 @@ function ResetPasswordScreen() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-[#d9e5e0] bg-white p-4 shadow-sm">
+    <div className="metric-card rounded-lg border border-[#d9e5e0] bg-white p-4 shadow-sm">
       <p className="text-sm text-[#59716d]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+      <p className="metric-value mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
@@ -697,10 +721,10 @@ function TaskColumn({
   onOpen: (id: string) => void;
 }) {
   return (
-    <div className="min-h-[520px] rounded-lg border border-[#d9e5e0] bg-[#eef5f2] p-3">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="task-column min-h-[520px] rounded-lg border border-[#d9e5e0] bg-[#eef5f2] p-3">
+      <div className="column-header mb-3 flex items-center justify-between">
         <h2 className="font-semibold">{statusLabels[status]}</h2>
-        <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold">{tasks.length}</span>
+        <span className="column-count rounded-md bg-white px-2 py-1 text-xs font-semibold">{tasks.length}</span>
       </div>
 
       <div className="grid gap-3">

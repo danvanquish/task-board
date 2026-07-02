@@ -134,6 +134,31 @@ textarea {
   font-size: 0.75rem;
 }
 
+.metric-card {
+  display: grid;
+  gap: 4px;
+}
+
+.metric-value {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.task-column {
+  padding: 18px;
+}
+
+.column-header {
+  padding: 0 2px 8px;
+}
+
+.column-count {
+  min-width: 34px;
+  padding: 5px 10px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
 .task-card {
   width: 100%;
   border: 1px solid #d9e5e0;
@@ -257,6 +282,10 @@ textarea {
   background: white;
   border: 1px solid #cddfda;
   color: #102a2a;
+}
+
+.sign-out-button {
+  flex: 0 0 auto;
 }
 
 .status-row {
