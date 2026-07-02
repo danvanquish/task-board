@@ -163,10 +163,28 @@ textarea {
   width: 100%;
   border: 1px solid #d9e5e0;
   border-radius: 8px;
-  background: white;
   padding: 14px;
   text-align: left;
   box-shadow: 0 1px 2px rgba(16, 42, 42, 0.04);
+}
+
+.task-normal {
+  background: white;
+}
+
+.task-urgent {
+  border: 2px solid #f1c65b;
+  background: #fee2e2;
+}
+
+.task-in-progress {
+  border-color: #e0a92f;
+  background: #fff3cf;
+}
+
+.task-done {
+  border-color: #74bd86;
+  background: #e3f5e8;
 }
 
 .task-card h3 {
@@ -174,6 +192,17 @@ textarea {
   color: #123333;
   font-size: 0.98rem;
   line-height: 1.35;
+}
+
+.urgent-pill {
+  display: inline-flex;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: #f1c65b;
+  color: #332704;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .meta {
@@ -416,6 +445,21 @@ textarea {
 .paste-box {
   min-height: 160px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  margin: 14px 0 2px;
+  color: #102a2a;
+}
+
+.checkbox-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f6464;
 }
 
 .empty {

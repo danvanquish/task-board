@@ -6,7 +6,8 @@ create table if not exists public.tasks (
   parent_id uuid references public.tasks(id) on delete cascade,
   site text not null,
   title text not null,
-  status text not null default 'new' check (status in ('new', 'in_progress', 'waiting', 'done')),
+  status text not null default 'new' check (status in ('new', 'in_progress', 'done')),
+  urgent boolean not null default false,
   created_by_user_id uuid references auth.users(id),
   taken_by_user_id uuid references auth.users(id),
   completed_by_user_id uuid references auth.users(id),
@@ -22,9 +23,20 @@ create table if not exists public.tasks (
 
 alter table public.tasks
   add column if not exists site text,
+  add column if not exists urgent boolean not null default false,
   add column if not exists created_by_user_id uuid references auth.users(id),
   add column if not exists taken_by_user_id uuid references auth.users(id),
   add column if not exists completed_by_user_id uuid references auth.users(id);
+
+update public.tasks
+set status = 'in_progress'
+where status = 'waiting';
+
+alter table public.tasks
+  drop constraint if exists tasks_status_check;
+
+alter table public.tasks
+  add constraint tasks_status_check check (status in ('new', 'in_progress', 'done'));
 
 update public.tasks
 set site = 'Redditch'

@@ -18,7 +18,8 @@ type TaskRow = {
   parent_id: string | null;
   site: string;
   title: string;
-  status: TaskStatus;
+  status: TaskStatus | "waiting";
+  urgent: boolean | null;
   created_by_user_id: string | null;
   taken_by_user_id: string | null;
   completed_by_user_id: string | null;
@@ -195,12 +196,15 @@ export function subscribeToRemoteChanges(onChange: () => void) {
 }
 
 function fromTaskRow(row: TaskRow): Task {
+  const status = row.status === "waiting" ? "in_progress" : row.status;
+
   return {
     id: row.id,
     parentId: row.parent_id,
     site: row.site,
     title: row.title,
-    status: row.status,
+    status,
+    urgent: Boolean(row.urgent),
     createdByUserId: row.created_by_user_id,
     takenByUserId: row.taken_by_user_id,
     completedByUserId: row.completed_by_user_id,
@@ -222,6 +226,7 @@ function toTaskRow(task: Task) {
     site: task.site,
     title: task.title,
     status: task.status,
+    urgent: task.urgent,
     created_by_user_id: task.createdByUserId,
     taken_by_user_id: task.takenByUserId,
     completed_by_user_id: task.completedByUserId,

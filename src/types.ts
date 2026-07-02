@@ -1,4 +1,4 @@
-export type TaskStatus = "new" | "in_progress" | "waiting" | "done";
+export type TaskStatus = "new" | "in_progress" | "done";
 
 export type TaskComment = {
   id: string;
@@ -21,6 +21,7 @@ export type Task = {
   site: string;
   title: string;
   status: TaskStatus;
+  urgent: boolean;
   createdByUserId: string | null;
   takenByUserId: string | null;
   completedByUserId: string | null;

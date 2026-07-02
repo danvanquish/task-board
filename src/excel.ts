@@ -50,6 +50,7 @@ export function makeChildTasks(parent: Task, rows: TaskRowData[], author: string
     site: parent.site,
     title: rowTitle(row),
     status: "new",
+    urgent: parent.urgent,
     createdByUserId: userId,
     takenByUserId: null,
     completedByUserId: null,

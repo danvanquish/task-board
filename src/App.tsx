@@ -50,11 +50,17 @@ import { SuiteProfile } from "./types";
 const statusLabels: Record<TaskStatus, string> = {
   new: "New",
   in_progress: "In Progress",
-  waiting: "Waiting",
   done: "Done",
 };
 
-const statusOrder: TaskStatus[] = ["new", "in_progress", "waiting", "done"];
+const statusOrder: TaskStatus[] = ["new", "in_progress", "done"];
+
+function taskCardClass(task: Task) {
+  if (task.status === "done") return "task-card task-done";
+  if (task.status === "in_progress") return "task-card task-in-progress";
+  if (task.urgent) return "task-card task-urgent";
+  return "task-card task-normal";
+}
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -427,7 +433,7 @@ export function App() {
     });
   }
 
-  function addSingleTask(title: string, note: string) {
+  function addSingleTask(title: string, note: string, urgent: boolean) {
     const trimmed = title.trim();
     if (!trimmed) return;
 
@@ -438,6 +444,7 @@ export function App() {
       site: activeSite,
       title: trimmed,
       status: "new",
+      urgent,
       createdByUserId: actorUserId,
       takenByUserId: null,
       completedByUserId: null,
@@ -460,7 +467,7 @@ export function App() {
     setIsAdding(false);
   }
 
-  function addBatchTask(title: string, paste: string, note: string) {
+  function addBatchTask(title: string, paste: string, note: string, urgent: boolean) {
     const parsed = parsePastedTable(paste);
     if (!title.trim() || parsed.rows.length === 0) return;
 
@@ -471,6 +478,7 @@ export function App() {
       site: activeSite,
       title: title.trim(),
       status: "new",
+      urgent,
       createdByUserId: actorUserId,
       takenByUserId: null,
       completedByUserId: null,
@@ -810,9 +818,12 @@ function TaskColumn({
           ).length;
 
           return (
-            <button key={task.id} className="task-card" onClick={() => onOpen(task.id)}>
+            <button key={task.id} className={taskCardClass(task)} onClick={() => onOpen(task.id)}>
               <div className="flex items-start justify-between gap-3">
-                <h3>{task.title}</h3>
+                <div>
+                  <h3>{task.title}</h3>
+                  {task.urgent && task.status === "new" && <span className="urgent-pill">Urgent</span>}
+                </div>
                 {task.note.trim() && <StickyNote className="h-4 w-4 text-[#c99319]" />}
               </div>
               <div className="meta">
@@ -984,13 +995,14 @@ function AddTaskModal({
   onBatch,
 }: {
   onClose: () => void;
-  onSingle: (title: string, note: string) => void;
-  onBatch: (title: string, paste: string, note: string) => void;
+  onSingle: (title: string, note: string, urgent: boolean) => void;
+  onBatch: (title: string, paste: string, note: string, urgent: boolean) => void;
 }) {
   const [mode, setMode] = useState<"single" | "batch">("single");
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [paste, setPaste] = useState("");
+  const [urgent, setUrgent] = useState(false);
   const parsed = parsePastedTable(paste);
 
   return (
@@ -1018,6 +1030,11 @@ function AddTaskModal({
         <label>Task title</label>
         <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Photograph used car stock" />
 
+        <label className="checkbox-row">
+          <input type="checkbox" checked={urgent} onChange={(event) => setUrgent(event.target.checked)} />
+          Urgent
+        </label>
+
         <label>Discreet note</label>
         <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional detail for the task" />
 
@@ -1038,7 +1055,7 @@ function AddTaskModal({
 
         <button
           className="button wide"
-          onClick={() => (mode === "single" ? onSingle(title, note) : onBatch(title, paste, note))}
+          onClick={() => (mode === "single" ? onSingle(title, note, urgent) : onBatch(title, paste, note, urgent))}
         >
           <ClipboardList className="h-4 w-4" />
           Create
