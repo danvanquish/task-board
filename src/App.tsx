@@ -58,10 +58,12 @@ const viewLabels: Record<TaskScope, string> = {
 };
 
 function taskCardClass(task: Task) {
-  if (task.status === "done") return "task-card task-done";
-  if (task.status === "in_progress") return "task-card task-in-progress";
-  if (task.urgent) return "task-card task-urgent";
-  return "task-card task-normal";
+  const classes = ["task-card"];
+  if (task.urgent) classes.push("task-urgent");
+  if (task.status === "done") classes.push("task-done");
+  else if (task.status === "in_progress") classes.push("task-in-progress");
+  else classes.push("task-normal");
+  return classes.join(" ");
 }
 
 function urlBase64ToUint8Array(base64String: string) {
