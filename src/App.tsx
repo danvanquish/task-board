@@ -583,9 +583,8 @@ export function App() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <section className="metrics-strip mb-5 grid gap-3 md:grid-cols-4">
+        <section className="metrics-strip mb-5 grid gap-3 md:grid-cols-3">
           <Metric label="Open tasks" value={tasks.filter((task) => task.status !== "done").length} />
-          <Metric label="Vehicle tasks" value={childTasks.length} />
           <Metric label="Completed" value={tasks.filter((task) => task.status === "done").length} />
           <Metric label="Notes" value={tasks.filter((task) => task.note.trim()).length} />
         </section>

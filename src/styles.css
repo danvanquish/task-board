@@ -60,6 +60,7 @@ body {
 .min-h-\[520px\] { min-height: 520px; }
 .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 button,
 input,
@@ -590,6 +591,7 @@ textarea {
   }
 
   .md\:grid-cols-4,
+  .md\:grid-cols-3,
   .xl\:grid-cols-4 {
     grid-template-columns: 1fr;
   }
@@ -597,6 +599,7 @@ textarea {
 
 @media (min-width: 721px) and (max-width: 1199px) {
   .md\:grid-cols-4,
+  .md\:grid-cols-3,
   .xl\:grid-cols-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -606,5 +609,9 @@ textarea {
   .xl\:grid-cols-4,
   .md\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
