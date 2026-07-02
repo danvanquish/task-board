@@ -685,7 +685,7 @@ export function App() {
             )}
           </aside>
 
-          <section className="task-board-grid grid gap-4 xl:grid-cols-3">
+          <section className="task-board-grid">
             {statusOrder.map((status) => (
               <TaskColumn
                 key={status}
