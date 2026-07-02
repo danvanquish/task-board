@@ -106,6 +106,22 @@ export function App() {
   const selectedTask = visibleTasks.find((task) => task.id === selectedTaskId) ?? null;
   const parentTasks = useMemo(() => visibleTasks.filter((task) => !task.parentId), [visibleTasks]);
   const childTasks = useMemo(() => visibleTasks.filter((task) => task.parentId), [visibleTasks]);
+  const newTaskCounts = useMemo(
+    () =>
+      (["personal", "team"] as TaskScope[]).reduce<Record<TaskScope, number>>(
+        (counts, scope) => {
+          counts[scope] = tasks.filter((task) => {
+            const taskScope = task.taskScope ?? "team";
+            if (taskScope !== scope || task.parentId || task.status !== "new") return false;
+            if (taskScope === "personal") return !actorUserId || task.createdByUserId === actorUserId;
+            return true;
+          }).length;
+          return counts;
+        },
+        { personal: 0, team: 0 }
+      ),
+    [actorUserId, tasks]
+  );
   const unreadCount = notifications.filter((notification) => !notification.read && !readNotificationIds.includes(notification.id)).length;
 
   useEffect(() => {
@@ -626,7 +642,8 @@ export function App() {
                   className={taskView === view ? "active" : ""}
                   onClick={() => setTaskView(view)}
                 >
-                  {viewLabels[view]}
+                  <span>{viewLabels[view]}</span>
+                  <span className="view-count">{newTaskCounts[view]}</span>
                 </button>
               ))}
             </div>

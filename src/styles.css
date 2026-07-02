@@ -165,6 +165,10 @@ textarea {
 }
 
 .view-switch button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-height: 36px;
   border: 0;
   border-radius: 6px;
@@ -175,9 +179,28 @@ textarea {
   font-weight: 700;
 }
 
+.view-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  padding: 0 7px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .view-switch button.active {
   background: #9f1d1d;
   color: white;
+}
+
+.view-switch button.active .view-count {
+  background: white;
+  color: #7f1d1d;
 }
 
 .metric-list {
@@ -674,6 +697,7 @@ textarea {
   }
 
   .view-switch button {
+    justify-content: center;
     text-align: center;
   }
 
