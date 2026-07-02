@@ -11,6 +11,8 @@ create table if not exists public.task_push_subscriptions (
 
 alter table public.task_push_subscriptions enable row level security;
 
+grant select, insert, update, delete on public.task_push_subscriptions to authenticated;
+
 drop policy if exists "task_push_subscriptions_select_own" on public.task_push_subscriptions;
 create policy "task_push_subscriptions_select_own"
 on public.task_push_subscriptions

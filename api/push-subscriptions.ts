@@ -34,6 +34,33 @@ function bearerToken(header: string | string[] | undefined) {
   return value?.startsWith("Bearer ") ? value.slice(7) : null;
 }
 
+function publicError(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+        ? String((error as { message?: unknown }).message)
+        : "";
+
+  if (message.includes("Missing VAPID_PUBLIC_KEY")) {
+    return "Team Tasks is missing VAPID_PUBLIC_KEY in Vercel";
+  }
+
+  if (message.startsWith("Missing ")) {
+    return "Team Tasks is missing a Supabase or notification setting in Vercel";
+  }
+
+  if (message.includes("task_push_subscriptions") && message.includes("does not exist")) {
+    return "Run supabase-task-push.sql in Supabase first";
+  }
+
+  if (message.includes("permission denied")) {
+    return "Supabase permissions need updating: run supabase-task-push.sql again";
+  }
+
+  return message || "Unable to save notification settings";
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
     const token = bearerToken(request.headers.authorization);
@@ -84,6 +111,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return response.status(200).json({ ok: true });
   } catch (error) {
     console.error("Task push subscription error", error);
-    return response.status(500).json({ error: "Unable to save notification settings" });
+    return response.status(500).json({ error: publicError(error) });
   }
 }
