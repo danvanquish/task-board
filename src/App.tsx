@@ -59,6 +59,7 @@ const viewLabels: Record<TaskScope, string> = {
   personal: "My Tasks",
   team: "Team Tasks",
 };
+const teamChatSeenKey = "dd25-task-board.team-chat-seen-count";
 
 function taskCardClass(task: Task) {
   const classes = ["task-card"];
@@ -90,6 +91,8 @@ export function App() {
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState("");
   const [taskView, setTaskView] = useState<TaskScope>("team");
+  const [isTeamChatOpen, setIsTeamChatOpen] = useState(false);
+  const [seenTeamChatCount, setSeenTeamChatCount] = useState(() => Number(localStorage.getItem(teamChatSeenKey) ?? 0));
 
   const actorName = suiteProfile?.advisorName || profile.name || "Someone";
   const actorUserId = suiteProfile?.userId ?? null;
@@ -110,6 +113,7 @@ export function App() {
   const selectedTask = visibleTasks.find((task) => task.id === selectedTaskId) ?? null;
   const parentTasks = useMemo(() => visibleTasks.filter((task) => !task.parentId), [visibleTasks]);
   const childTasks = useMemo(() => visibleTasks.filter((task) => task.parentId), [visibleTasks]);
+  const waitingTeamChatCount = Math.max(0, teamChatMessages.length - seenTeamChatCount);
   const newTaskCounts = useMemo(
     () =>
       (["personal", "team"] as TaskScope[]).reduce<Record<TaskScope, number>>(
@@ -131,6 +135,12 @@ export function App() {
   useEffect(() => {
     setSelectedTaskId(null);
   }, [taskView]);
+
+  useEffect(() => {
+    if (!isTeamChatOpen) return;
+    setSeenTeamChatCount(teamChatMessages.length);
+    localStorage.setItem(teamChatSeenKey, String(teamChatMessages.length));
+  }, [isTeamChatOpen, teamChatMessages.length]);
 
   useEffect(() => {
     if (!isSupabaseEnabled) return;
@@ -220,6 +230,12 @@ export function App() {
   function updateProfile(nextProfile: typeof profile) {
     setProfile(nextProfile);
     saveProfile(nextProfile);
+  }
+
+  function openTeamChat() {
+    setIsTeamChatOpen(true);
+    setSeenTeamChatCount(teamChatMessages.length);
+    localStorage.setItem(teamChatSeenKey, String(teamChatMessages.length));
   }
 
   function persistTasks(nextTasks: Task[]) {
@@ -645,7 +661,6 @@ export function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="user-chip">{actorName}{isManager ? " · Manager" : ""}</div>
             <button className="button secondary" onClick={handleNotificationsClick}>
               <Bell className="h-4 w-4" />
               {profile.notificationsEnabled ? (unreadCount > 0 ? "Mark read" : "On") : "Notify"}
@@ -681,7 +696,13 @@ export function App() {
             </div>
             <MetricsList tasks={visibleTasks} />
             {taskView === "team" && (
-              <TeamChat messages={teamChatMessages} onSend={addTeamChatMessage} />
+              <button className="team-chat-launcher" onClick={openTeamChat}>
+                <span>
+                  <MessageSquareText className="h-4 w-4" />
+                  Team chat
+                </span>
+                <strong>{waitingTeamChatCount > 0 ? waitingTeamChatCount : teamChatMessages.length}</strong>
+              </button>
             )}
           </aside>
 
@@ -705,6 +726,10 @@ export function App() {
           <Trash2 className="h-4 w-4" />
           Remove completed tasks
         </button>
+      )}
+
+      {taskView === "team" && isTeamChatOpen && (
+        <TeamChatOverlay messages={teamChatMessages} onSend={addTeamChatMessage} onClose={() => setIsTeamChatOpen(false)} />
       )}
 
       {selectedTask && (
@@ -938,6 +963,27 @@ function TeamChat({ messages, onSend }: { messages: TeamChatMessage[]; onSend: (
   );
 }
 
+function TeamChatOverlay({
+  messages,
+  onSend,
+  onClose,
+}: {
+  messages: TeamChatMessage[];
+  onSend: (body: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="chat-overlay-backdrop" onClick={onClose}>
+      <div className="chat-overlay" onClick={(event) => event.stopPropagation()}>
+        <button className="icon-button chat-close" onClick={onClose} aria-label="Close team chat">
+          <X className="h-5 w-5" />
+        </button>
+        <TeamChat messages={messages} onSend={onSend} />
+      </div>
+    </div>
+  );
+}
+
 function TaskColumn({
   status,
   tasks,
@@ -952,7 +998,7 @@ function TaskColumn({
   onOpen: (id: string) => void;
 }) {
   return (
-    <div className="task-column min-h-[520px] rounded-lg border border-[#d9e5e0] p-3">
+    <div className="task-column rounded-lg border border-[#d9e5e0] p-3">
       <div className="column-header mb-3 flex items-center justify-between">
         <h2 className="font-semibold">{statusLabels[status]}</h2>
         <span className="column-count rounded-md bg-white px-2 py-1 text-xs font-semibold">{tasks.length}</span>

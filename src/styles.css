@@ -152,6 +152,7 @@ textarea {
 
 .view-switch,
 .metric-list,
+.team-chat-launcher,
 .team-chat {
   border: 1px solid #d9e5e0;
   border-radius: 8px;
@@ -224,6 +225,63 @@ textarea {
 .metric-row strong {
   color: #102a2a;
   font-size: 1.05rem;
+}
+
+.team-chat-launcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  color: #102a2a;
+  text-align: left;
+  font-weight: 800;
+}
+
+.team-chat-launcher span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-chat-launcher strong {
+  min-width: 28px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  padding: 3px 8px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.chat-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: end center;
+  background: rgba(16, 42, 42, 0.32);
+  padding: 16px;
+}
+
+.chat-overlay {
+  position: relative;
+  width: min(100%, 560px);
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 22px 60px rgba(16, 42, 42, 0.25);
+}
+
+.chat-overlay .team-chat {
+  max-height: min(720px, calc(100vh - 32px));
+}
+
+.chat-close {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 2;
 }
 
 .team-chat {
@@ -309,22 +367,15 @@ textarea {
 
 .task-board-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 16px;
   align-items: start;
-  transition: grid-template-columns 180ms ease;
 }
 
 .task-column {
   background: #fbefef;
   padding: 18px;
-  overflow: hidden;
-  transition: padding 180ms ease, box-shadow 180ms ease;
-}
-
-.task-column:hover,
-.task-column:focus-within {
-  box-shadow: 0 14px 34px rgba(127, 29, 29, 0.14);
+  min-height: 280px;
 }
 
 .column-header {
@@ -939,5 +990,59 @@ textarea {
 
   .xl\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 721px) {
+  .board-shell {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .task-board-grid,
+  .task-board-grid:has(.task-column:hover),
+  .task-board-grid:has(.task-column:focus-within),
+  .task-board-grid:has(.task-column:nth-child(1):hover),
+  .task-board-grid:has(.task-column:nth-child(1):focus-within),
+  .task-board-grid:has(.task-column:nth-child(2):hover),
+  .task-board-grid:has(.task-column:nth-child(2):focus-within),
+  .task-board-grid:has(.task-column:nth-child(3):hover),
+  .task-board-grid:has(.task-column:nth-child(3):focus-within) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .task-column,
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within),
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within),
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) {
+    padding: 18px !important;
+  }
+
+  .task-column .column-header,
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within) .column-header,
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header,
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    justify-items: initial !important;
+    gap: 12px;
+    padding: 0 2px 8px !important;
+  }
+
+  .task-column .column-header h2,
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within) .column-header h2,
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header h2,
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) .column-header h2 {
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  .task-column .grid,
+  .task-column:nth-child(n + 2):not(:hover):not(:focus-within) .grid,
+  .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within) .grid,
+  .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) .grid {
+    display: grid !important;
   }
 }
