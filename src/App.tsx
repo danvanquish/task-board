@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   ClipboardList,
@@ -647,7 +647,7 @@ export function App() {
   return (
     <div className="min-h-screen bg-[#f6f8f5] text-[#102a2a]">
       <header className="sticky top-0 z-10 border-b border-[#d9e5e0] bg-white/90 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <img src="/icon-192.png" alt="DD25 Team Tasks" className="app-header-logo" />
             <div>
@@ -679,7 +679,7 @@ export function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto w-full max-w-[1800px] px-4 py-6 2xl:px-6">
         <section className="board-shell">
           <aside className="left-pane">
             <div className="view-switch" aria-label="Task view">
@@ -924,7 +924,12 @@ function MetricsList({ tasks }: { tasks: Task[] }) {
 
 function TeamChat({ messages, onSend }: { messages: TeamChatMessage[]; onSend: (body: string) => void }) {
   const [body, setBody] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const recentMessages = messages.slice(-12);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -956,7 +961,7 @@ function TeamChat({ messages, onSend }: { messages: TeamChatMessage[]; onSend: (
       </div>
 
       <form className="team-chat-form" onSubmit={submit}>
-        <input value={body} onChange={(event) => setBody(event.target.value)} placeholder="Message the team" />
+        <input ref={inputRef} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Message the team" />
         <button className="button" disabled={!body.trim()}>Send</button>
       </form>
     </section>
@@ -975,9 +980,11 @@ function TeamChatOverlay({
   return (
     <div className="chat-overlay-backdrop" onClick={onClose}>
       <div className="chat-overlay" onClick={(event) => event.stopPropagation()}>
-        <button className="icon-button chat-close" onClick={onClose} aria-label="Close team chat">
-          <X className="h-5 w-5" />
-        </button>
+        <div className="chat-overlay-topbar">
+          <button className="icon-button chat-close" onClick={onClose} aria-label="Close team chat">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
         <TeamChat messages={messages} onSend={onSend} />
       </div>
     </div>

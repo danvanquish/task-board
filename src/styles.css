@@ -92,6 +92,11 @@ textarea {
   color: #102a2a;
 }
 
+.chat-overlay .team-chat-form input:focus {
+  border-color: #9f1d1d;
+  box-shadow: 0 0 0 3px rgba(159, 29, 29, 0.16);
+}
+
 textarea {
   min-height: 92px;
   resize: vertical;
@@ -273,14 +278,27 @@ textarea {
   box-shadow: 0 22px 60px rgba(16, 42, 42, 0.25);
 }
 
+.chat-overlay-topbar {
+  display: flex;
+  justify-content: flex-end;
+  border: 1px solid #d9e5e0;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: white;
+  padding: 8px 8px 0;
+}
+
+.chat-overlay .team-chat {
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+}
+
 .chat-overlay .team-chat {
   max-height: min(720px, calc(100vh - 32px));
 }
 
 .chat-close {
-  position: absolute;
-  right: 14px;
-  top: 14px;
+  position: static;
   z-index: 2;
 }
 
@@ -995,7 +1013,8 @@ textarea {
 
 @media (min-width: 721px) {
   .board-shell {
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 18px;
   }
 
   .task-board-grid,
@@ -1015,6 +1034,7 @@ textarea {
   .task-board-grid:has(.task-column:nth-child(n + 2):hover) .task-column:nth-child(1):not(:hover):not(:focus-within),
   .task-board-grid:has(.task-column:nth-child(n + 2):focus-within) .task-column:nth-child(1):not(:hover):not(:focus-within) {
     padding: 18px !important;
+    min-height: 320px;
   }
 
   .task-column .column-header,
