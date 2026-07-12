@@ -560,9 +560,8 @@ export function App() {
     setIsAdding(false);
   }
 
-  function addBatchTask(title: string, paste: string, note: string, urgent: boolean) {
-    const parsed = parsePastedTable(paste);
-    if (!title.trim() || parsed.rows.length === 0) return;
+  function addBatchTask(title: string, rows: TaskRowData[], note: string, urgent: boolean) {
+    if (!title.trim() || rows.length === 0) return;
 
     const now = new Date().toISOString();
     const parent: Task = {
@@ -585,7 +584,7 @@ export function App() {
       note,
       rowData: null,
     };
-    const children = makeChildTasks(parent, parsed.rows, actorName, actorUserId);
+    const children = makeChildTasks(parent, rows, actorName, actorUserId);
 
     persistTasks([parent, ...children, ...tasks]);
     void insertRemoteTasks([parent, ...children]).catch((error) => {
@@ -991,6 +990,34 @@ function TeamChatOverlay({
   );
 }
 
+function renameParsedRows(
+  headers: string[],
+  rows: TaskRowData[],
+  labels: Record<string, string>
+) {
+  const usedLabels = new Set<string>();
+  const nextHeaders = headers.map((header, index) => {
+    const trimmed = (labels[header] ?? header).trim() || `Column ${index + 1}`;
+    let nextHeader = trimmed;
+    let suffix = 2;
+
+    while (usedLabels.has(nextHeader.toLowerCase())) {
+      nextHeader = `${trimmed} ${suffix}`;
+      suffix += 1;
+    }
+
+    usedLabels.add(nextHeader.toLowerCase());
+    return nextHeader;
+  });
+
+  return rows.map((row) => ({
+    ...row,
+    values: Object.fromEntries(
+      headers.map((header, index) => [nextHeaders[index], row.values[header] ?? ""])
+    ),
+  }));
+}
+
 function TaskColumn({
   status,
   tasks,
@@ -1199,7 +1226,7 @@ function AddTaskModal({
 }: {
   onClose: () => void;
   onSingle: (title: string, note: string, urgent: boolean) => void;
-  onBatch: (title: string, paste: string, note: string, urgent: boolean) => void;
+  onBatch: (title: string, rows: TaskRowData[], note: string, urgent: boolean) => void;
   view: TaskScope;
 }) {
   const [mode, setMode] = useState<"single" | "batch">("single");
@@ -1208,6 +1235,8 @@ function AddTaskModal({
   const [paste, setPaste] = useState("");
   const [urgent, setUrgent] = useState(false);
   const parsed = parsePastedTable(paste);
+  const [columnLabels, setColumnLabels] = useState<Record<string, string>>({});
+  const renamedRows = renameParsedRows(parsed.headers, parsed.rows, columnLabels);
 
   return (
     <div className="modal-backdrop">
@@ -1252,14 +1281,47 @@ function AddTaskModal({
               placeholder={"Reg\tModel\tColour\tPeg Number\nAB12 CDE\tC3 Aircross\tBlue\t47"}
             />
             {parsed.rows.length > 0 && (
-              <p className="empty">{parsed.rows.length} row tasks will be created.</p>
+              <div className="column-renamer">
+                <div>
+                  <strong>Column names</strong>
+                  <p>Rename these before creating the row tasks.</p>
+                </div>
+                <div className="column-renamer-grid">
+                  {parsed.headers.map((header, index) => (
+                    <label key={`${header}-${index}`}>
+                      Column {index + 1}
+                      <input
+                        value={columnLabels[header] ?? header}
+                        onChange={(event) =>
+                          setColumnLabels((currentLabels) => ({
+                            ...currentLabels,
+                            [header]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <p className="empty">{renamedRows.length} row tasks will be created.</p>
+                <div className="batch-preview">
+                  {renamedRows.slice(0, 3).map((row) => (
+                    <div key={row.id}>
+                      {Object.entries(row.values).map(([key, value]) => (
+                        <span key={key}>
+                          <strong>{key}</strong> {value || "-"}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         )}
 
         <button
           className="button wide"
-          onClick={() => (mode === "single" ? onSingle(title, note, urgent) : onBatch(title, paste, note, urgent))}
+          onClick={() => (mode === "single" ? onSingle(title, note, urgent) : onBatch(title, renamedRows, note, urgent))}
         >
           <ClipboardList className="h-4 w-4" />
           Create

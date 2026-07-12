@@ -703,6 +703,66 @@ textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.column-renamer {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  border: 1px solid #d9e5e0;
+  border-radius: 8px;
+  background: #fbefef;
+  padding: 12px;
+}
+
+.column-renamer strong {
+  color: #102a2a;
+}
+
+.column-renamer p {
+  margin: 3px 0 0;
+  color: #59716d;
+  font-size: 0.84rem;
+}
+
+.column-renamer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.column-renamer-grid label {
+  margin: 0;
+}
+
+.column-renamer-grid input {
+  margin-top: 5px;
+}
+
+.batch-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.batch-preview div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-radius: 6px;
+  background: white;
+  padding: 8px;
+}
+
+.batch-preview span {
+  border-radius: 999px;
+  background: #f6f8f5;
+  padding: 4px 8px;
+  color: #36534f;
+  font-size: 0.78rem;
+}
+
+.batch-preview strong {
+  margin-right: 4px;
+}
+
 .checkbox-row {
   display: inline-flex;
   align-items: center;
