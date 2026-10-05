@@ -4,6 +4,7 @@ import { SuiteProfile, Task, TaskComment, TaskNotification, TaskScope, TaskStatu
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const passwordResetUrl = import.meta.env.VITE_PASSWORD_RESET_URL || "https://dd25.co.uk/reset-password";
 
 export const isSupabaseEnabled = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -91,7 +92,7 @@ export async function signIn(email: string, password: string) {
 export async function requestPasswordReset(email: string) {
   if (!supabase) return;
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: passwordResetUrl,
   });
   if (error) throw error;
 }
